@@ -1,39 +1,32 @@
 const express = require('express');
-const jwt = require('jsonwebtoken');
-const session = require('express-session')
-const customer_routes = require('./router/auth_users.js').authenticated;
-const genl_routes = require('./router/general.js').general;
+const session = require('express-session');
+
+const general = require('./router/general.js');
+const regd_users = require('./router/auth_users.js').authenticated;
 
 const app = express();
 
 app.use(express.json());
 
-app.use("/customer",session({secret:"fingerprint_customer",resave: true, saveUninitialized: true}))
+app.use(
+  session({
+    secret: 'fingerprint_customer',
+    resave: false,
+    saveUninitialized: true
+  })
+);
 
-app.use("/customer/auth/*", function auth(req, res, next) {
-  const token = req.session.authorization?.accessToken;
+// Public routes
+app.use('/', general);
 
-  if (!token) {
-    return res.status(401).json({
-      message: "Unauthorized"
-    });
-  }
+// Registered user routes
+app.use('/customer', regd_users);
 
-  jwt.verify(token, "fingerprint_customer", (err, decoded) => {
-    if (err) {
-      return res.status(403).json({
-        message: "Forbidden"
-      });
-    }
+// Required login endpoint for the assignment
+app.use('/', regd_users);
 
-    req.user = decoded;
-    next();
-  });
+const PORT = 5000;
+
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
 });
- 
-const PORT =5000;
-
-app.use("/customer", customer_routes);
-app.use("/", genl_routes);
-
-app.listen(PORT,()=>console.log("Server is running"));
